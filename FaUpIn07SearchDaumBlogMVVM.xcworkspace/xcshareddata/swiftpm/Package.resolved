@@ -1,0 +1,33 @@
+{
+  "originHash" : "cfdc81c5783036fed858ed744a1ca960dfd72fbb2c8a6dcbf54064b51d2f0b36",
+  "pins" : [
+    {
+      "identity" : "kingfisher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Kingfisher.git",
+      "state" : {
+        "revision" : "5b92f029fab2cce44386d28588098b5be0824ef5",
+        "version" : "7.11.0"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/reactivex/rxswift.git/",
+      "state" : {
+        "revision" : "7c17a6ccca06b5c107cfa4284e634562ddaf5951",
+        "version" : "6.2.0"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/snapkit/snapkit.git",
+      "state" : {
+        "revision" : "2842e6e84e82eb9a8dac0100ca90d9444b0307f4",
+        "version" : "5.7.1"
+      }
+    }
+  ],
+  "version" : 3
+}

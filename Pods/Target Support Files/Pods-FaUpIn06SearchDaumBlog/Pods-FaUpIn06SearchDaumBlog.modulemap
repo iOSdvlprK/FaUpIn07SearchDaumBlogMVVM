@@ -1,0 +1,6 @@
+framework module Pods_FaUpIn06SearchDaumBlog {
+  umbrella header "Pods-FaUpIn06SearchDaumBlog-umbrella.h"
+
+  export *
+  module * { export * }
+}
