@@ -14,12 +14,9 @@ class MainViewController: UIViewController {
     let searchBar = SearchBar()
     let listView = BlogListView()
     
-    let alertActionTapped = PublishRelay<AlertAction>()
-    
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         
-        bind()
         attribute()
         layout()
     }
@@ -28,96 +25,16 @@ class MainViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func bind() {
-        let blogResult = searchBar.shouldLoadResult
-            .flatMapLatest { query in
-                SearchBlogNetwork().searchBlog(query: query)
-            }
-            .share()
+    func bind(_ viewModel: MainViewModel) {
+        listView.bind(viewModel.blogListViewModel)
+        searchBar.bind(viewModel.searchBarViewModel)
         
-        let blogValue = blogResult
-            .compactMap { data -> DKBlog? in
-                guard case .success(let value) = data else { return nil }
-                return value
-            }
-        
-        let blogError = blogResult
-            .compactMap { data -> String? in
-                guard case .failure(let error) = data else { return nil }
-                return error.localizedDescription
-            }
-        
-        // convert to cellData the value received from network
-        let cellData = blogValue
-            .map { blog -> [BlogListCellData] in
-                return blog.documents
-                    .map { doc in
-                        let thumbnailURL = URL(string: doc.thumbnail ?? "")
-                        return BlogListCellData(
-                            thumbnailURL: thumbnailURL,
-                            name: doc.name,
-                            title: doc.title,
-                            datetime: doc.datetime
-                        )
-                    }
-            }
-        
-        // type out of selecting alertsheet when opting for FilterView
-        let sortedType = alertActionTapped
-            .filter {
-                switch $0 {
-                case .title, .datetime:
-                    return true
-                default:
-                    return false
-                }
-            }
-            .startWith(.title)
-        
-        // MainViewController -> ListView
-        Observable
-            .combineLatest(
-                sortedType,
-                cellData
-            ) { type, data -> [BlogListCellData] in
-                switch type {
-                case .title:
-                    return data.sorted { $0.title ?? "" < $1.title ?? "" }
-                case .datetime:
-                    return data.sorted { $0.datetime ?? Date() > $1.datetime ?? Date() }
-                default:
-                    return data
-                }
-            }
-            .bind(to: listView.cellData)
-            .disposed(by: disposeBag)
-        
-        let alertSheetForSorting = listView.headerView.sortButtonTapped
-            .map { _ -> Alert in
-                return (title: nil, message: nil, actions: [.title, .datetime, .cancel], style: .actionSheet)
-            }
-        
-        let alertForErrorMessage = blogError
-            .map { message -> Alert in
-                return (
-                    title: "Oh, my..",
-                    message: "An unexpected error occurred. Please try again in a moment. \(message)",
-                    actions: [.confirm],
-                    style: .alert
-                )
-            }
-        
-        Observable
-            .merge(
-                alertSheetForSorting,
-                alertForErrorMessage
-            )
-            .asSignal(onErrorSignalWith: .empty())
+        viewModel.shouldPresentAlert
             .flatMapLatest { alert -> Signal<AlertAction> in
                 let alertController = UIAlertController(title: alert.title, message: alert.message, preferredStyle: alert.style)
                 return self.presentAlertController(alertController, actions: alert.actions)
             }
-            .emit(to: alertActionTapped)
+            .emit(to: viewModel.alertActionTapped)
             .disposed(by: disposeBag)
     }
     
