@@ -17,39 +17,20 @@ struct MainViewModel {
     let alertActionTapped = PublishRelay<MainViewController.AlertAction>()
     let shouldPresentAlert: Signal<MainViewController.Alert>
     
-    init() {
+    init(model: MainModel = MainModel()) {
         let blogResult = searchBarViewModel.shouldLoadResult
-            .flatMapLatest { query in
-                SearchBlogNetwork().searchBlog(query: query)
-            }
+            .flatMapLatest(model.searchBlog)
             .share()
         
         let blogValue = blogResult
-            .compactMap { data -> DKBlog? in
-                guard case .success(let value) = data else { return nil }
-                return value
-            }
+            .compactMap(model.getBlogValue)
         
         let blogError = blogResult
-            .compactMap { data -> String? in
-                guard case .failure(let error) = data else { return nil }
-                return error.localizedDescription
-            }
+            .compactMap(model.getBlogError)
         
         // convert to cellData the value received from network
         let cellData = blogValue
-            .map { blog -> [BlogListCellData] in
-                return blog.documents
-                    .map { doc in
-                        let thumbnailURL = URL(string: doc.thumbnail ?? "")
-                        return BlogListCellData(
-                            thumbnailURL: thumbnailURL,
-                            name: doc.name,
-                            title: doc.title,
-                            datetime: doc.datetime
-                        )
-                    }
-            }
+            .map(model.getBlogListCellData)
         
         // type out of selecting alertsheet when opting for FilterView
         let sortedType = alertActionTapped
@@ -67,17 +48,9 @@ struct MainViewModel {
         Observable
             .combineLatest(
                 sortedType,
-                cellData
-            ) { type, data -> [BlogListCellData] in
-                switch type {
-                case .title:
-                    return data.sorted { $0.title ?? "" < $1.title ?? "" }
-                case .datetime:
-                    return data.sorted { $0.datetime ?? Date() > $1.datetime ?? Date() }
-                default:
-                    return data
-                }
-            }
+                cellData,
+                resultSelector: model.sort
+            )
             .bind(to: blogListViewModel.blogCellData)
             .disposed(by: disposeBag)
         
